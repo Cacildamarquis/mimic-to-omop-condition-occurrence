@@ -1,0 +1,42 @@
+## Basic Profiling
+SELECT
+ COUNT(*) AS total_rows,
+ COUNT(DISTINCT subject_id) AS distinct_subjects,
+ COUNT(DISTINCT hadm_id) AS distinct_admissions,
+ COUNT(DISTINCT icd9_code) AS unique_icd9_codes,
+FROM mimic3_demo.DIAGNOSES_ICD;
+
+## Frequency of subject_id
+SELECT subject_id, COUNT(*) AS diagnosis_count
+FROM mimic3_demo.DIAGNOSES_ICD
+GROUP BY subject_id
+ORDER BY diagnosis_count DESC
+LIMIT 10;
+# This tells us if patients have multiple conditions. High subject_id frequency indicates many diagnosis events, inicating good mapping potential.
+# The diagnoses_icd table has 1761 rows and 100 unique patients. Some patients have >20 diagnosis entries—indicating multiple comorbidities. High variance in diagnosis count per patient may affect data quality.
+
+WITH condition_occurrence AS (
+  SELECT
+   subject_id AS person_id,
+   hadm_id AS visit_occurrence_id,
+   icd9_code AS condition_source_value
+  FROM mimic3_demo.DIAGNOSES_ICD
+)
+SELECT * FROM condition_occurrence
+LIMIT 10;
+-- CTE is used to simulate the creation of the CONDITION_OCCURRENCE table without write permissions.
+-- The output is selected using a LIMIT clause for preview and review purposes.
+
+## Data Quality assessment
+# Checking for missing values:
+SELECT COUNT(*) AS TOTAL_ROWS,
+COUNTIF(SUBJECT_ID IS NULL) AS MISSING_PERSON_ID,
+COUNTIF(HADM_ID IS NULL) AS MISSING_VISIT_ID,
+COUNTIF(ICD9_CODE IS NULL) AS MISSING_CONDITION
+FROM mimic3_demo.DIAGNOSES_ICD
+
+# Number of unique combinations
+SELECT COUNT(DISTINCT SUBJECT_ID || '-' || HADM_ID || '-' || ICD9_CODE) AS UNIQUE_COMBINATIONS
+FROM mimic3_demo.DIAGNOSES_ICD;
+-- Assessed completeness of key fields using COUNTIF on NULLs in `diagnoses_icd`.
+-- Confirmed high completeness and uniqueness using DISTINCT count of combined fields.
